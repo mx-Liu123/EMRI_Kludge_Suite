@@ -12,6 +12,8 @@
 #include "IEKG.h"
 #include "KSParMap.h"
 
+//---------- QAAK MOD: We  choose  a  rough  approach  by  replacing  all the 3PN terms quadratic in spin with −Q in the higher order equations. The q_q is quadrupole.
+
 void cross(const gsl_vector *u,const gsl_vector *v,gsl_vector *w){
 
   gsl_vector_set(w,0,gsl_vector_get(u,1)*gsl_vector_get(v,2)-gsl_vector_get(u,2)*gsl_vector_get(v,1));
@@ -83,7 +85,7 @@ void ParAng(double ang[],double e,double iota,double gamma,double psi,double the
 }
 
 // ----- 3PN O(e^6) equations (Sago & Fujita, 2015) -----
-double dvdt(double v,double e,double Y,double m,double M,double q){
+double dvdt(double v,double e,double Y,double m,double M,double q, double q_q){
   double v2=v*v;
   double v3=v2*v;
   double v6=v3*v3;
@@ -91,7 +93,7 @@ double dvdt(double v,double e,double Y,double m,double M,double q){
   double e4=e2*e2;
   double e6=e4*e2;
   double Y2=Y*Y;
-  double q2=q*q;
+  double q2=-q_q;
   double eq=(32.*pow(1. - e2,1.5)*m*v6*v3*(1. + (7.*e2)/8. + 
        ((-5944. - 7040.*e2 + 8539.*e4)*v2)/2688. - 
        (v3*((-18432. - 55872.*e2 - 7056.*e4 + 49.*e6)*M_PI + 
@@ -114,14 +116,14 @@ double dvdt(double v,double e,double Y,double m,double M,double q){
   return eq;
 }
 
-double dedt(double v,double e,double Y,double m,double M,double q){
+double dedt(double v,double e,double Y,double m,double M,double q, double q_q){
   double v2=v*v;
   double v3=v2*v;
   double v6=v3*v3;
   double e2=e*e;
   double e4=e2*e2;
   double Y2=Y*Y;
-  double q2=q*q;
+  double q2=-q_q;
   double eq=-(e*pow(1. - e2,1.5)*m*v6*v2*(2451456. + 975744.*e2 + 
         144.*(-54792. - 18600.*e2 + 22579.*e4)*v2 + 
         84.*v3*((189120. + 286512.*e2 + 24217.*e4)*M_PI - 
@@ -143,14 +145,14 @@ double dedt(double v,double e,double Y,double m,double M,double q){
   return eq;
 }
 
-double dtdm(double v,double e,double Y,double q){
+double dtdm(double v,double e,double Y,double q, double q_q){
   double v2=v*v;
   double v3=v2*v;
   double v4=v2*v2;
   double e2=e*e;
   double e4=e2*e2;
   double Y2=Y*Y;
-  double q2=q*q;
+  double q2=-q_q;
   double eq=(2.*e4*(240. + v2*(-120. + v*(42.*(-27. + 4.*q2)*v + (-6567. + 1996.*q2)*v3 + 
               48.*q*(8. + 77.*v2)*Y - 4.*q2*v*(90. + 1577.*v2)*Y2))) + 
      e4*e2*(560. + v2*(-360. + 960.*q*v*Y + 8816.*q*v3*Y + 
@@ -163,13 +165,13 @@ double dtdm(double v,double e,double Y,double q){
   return eq;
 }
 
-double drdm(double v,double e,double Y,double q){
+double drdm(double v,double e,double Y,double q, double q_q){
   double v2=v*v;
   double v3=v2*v;
   double e2=e*e;
   double e4=e2*e2;
   double Y2=Y*Y;
-  double q2=q*q;
+  double q2=-q_q;
   double eq=(16. + 8.*(-3. + e2)*v2 - 16.*(-3. + e2)*q*v3*Y + 
      8.*(33. + 4.*e2 - 3.*e4)*q*v3*v2*Y + 
      v3*v3*(-351. + 132.*q2 + e2*(-135. + 21.*e2 + 5.*e4 + 2.*(7. + e2)*q2) + 
@@ -178,13 +180,13 @@ double drdm(double v,double e,double Y,double q){
   return eq;
 }
 
-double dthetadm(double v,double e,double Y,double q){
+double dthetadm(double v,double e,double Y,double q, double q_q){
   double v2=v*v;
   double v3=v2*v;
   double e2=e*e;
   double e4=e2*e2;
   double Y2=Y*Y;
-  double q2=q*q;
+  double q2=-q_q;
   double eq=(16. + 8.*(3. + e2)*v2 - 16.*(3. + e2)*q*v3*Y - 
      8.*(3. + e2)*(5. + 3.*e2)*q*v3*v2*Y + 
      v3*v3*(135. - 54.*q2 + e2*(5.*(27. + 9.*e2 + e4) + 2.*(-38. + e2)*q2) + 
@@ -193,13 +195,13 @@ double dthetadm(double v,double e,double Y,double q){
   return eq;
 }
 
-double dphidm(double v,double e,double Y,double q){
+double dphidm(double v,double e,double Y,double q, double q_q){
   double v2=v*v;
   double v3=v2*v;
   double e2=e*e;
   double e4=e2*e2;
   double Y2=Y*Y;
-  double q2=q*q;
+  double q2=-q_q;
   double eq=(16. + 8.*(3. + e2)*v2 - 16.*q*v3*(-2. + (3. + e2)*Y) - 
      8.*q*v3*v2*(-6. + 15.*Y + 3.*e4*Y + 2.*e2*(-4. + 7.*Y)) + 
      2.*v2*v2*(27. + 3.*e4 + 2.*q2*(-1. + Y)*(1. + 7.*Y) + 2.*e2*(9. + q2*(1. + Y2))) + 
@@ -208,116 +210,6 @@ double dphidm(double v,double e,double Y,double q){
   return eq;
 }
 
-double dvdt2(double v,double e,double Y,double m,double M,double q,double dv,double de){
-  double v2=v*v;
-  double v3=v2*v;
-  double v4=v2*v2;
-  double v5=v3*v2;
-  double v6=v3*v3;
-  double e2=e*e;
-  double e4=e2*e2;
-  double e6=e4*e2;
-  double Y2=Y*Y;
-  double q2=q*q;
-  double eq=-(sqrt(1. - e2)*m*v6*v2*(50.*dv*(-1. + e2)*
-         (-16.*(-50295168. + 135933336.*v2 - 5588352.*v3*(48.*M_PI - 133.*q*Y) + 
-              116424.*v5*(4159.*M_PI + 17412.*q*Y) - 4004.*v4*(34103. + 189.*q2*(-329. + 815.*Y2)) + 
-              3.*v6*(-3259092203. + 455583744.*EulerGamma - 149022720.*PI2 + 48170430.*q2 + 
-                 1345861440.*M_PI*q*Y - 3030329610.*q2*Y2 + 911167488.*log(2.))) + 
-           6.*e4*v2*(520742376. + 6091303680.*PI2*v4 - 884822400.*q*v*Y - 
-              9700758144.*q*v3*Y - 4851.*M_PI*v*(-56448. - 679957.*v2 + 4107120.*q*v3*Y) + 
-              4004.*v2*(-1232809. + 63.*q2*(-1051. + 2997.*Y2)) - 
-              3.*v4*(-53469846197. + 6207328512.*EulerGamma - 6930.*q2*(-56239. + 1243317.*Y2) + 
-                 370826184960.*log(2.) - 202385959776.*log(3.))) + 
-           96.*e2*(7334712. - 26832960.*v2 + 465696.*v3*(291.*M_PI - 379.*q*Y) - 
-              9702.*v5*(48809.*M_PI + 14602.*q*Y) + 
-              1001.*v4*(-526955. + 126.*q2*(-929. + 1431.*Y2)) - 
-              6.*v6*(-1762221467. + 271689264.*EulerGamma - 88870320.*PI2 - 118031760.*q2 + 
-                 409909500.*M_PI*q*Y - 282650445.*q2*Y2 - 107963856.*log(2.) + 648672948.*log(3.))) + 
-           3.*e6*v3*(642660480.*PI2*v3 - 
-              539.*M_PI*(7056. - 4005097.*v2 + 6514620.*q*v3*Y) - 
-              12.*v*(-212061850. + 690180876.*q*v*Y + 
-                 v2*(-7518381912. + 163725408.*EulerGamma - 3465.*q2*(-10713. + 287497.*Y2) - 
-                    1623697036192.*log(2.) + 443530128195.*log(3.) + 402294921875.*log(5.))))) + 
-        3.*de*e*v*(264.*e2*(24696000. - 145647600.*v2 - 1575.*v5*(877439.*M_PI - 471888.*q*Y) + 
-              940800.*v3*(327.*M_PI - 355.*q*Y) + 4200.*v4*(-155774. + 7.*q2*(-8239. + 11313.*Y2)) + 
-              2.*v6*(2625711407. - 706097280.*EulerGamma + 230966400.*PI2 + 774394950.*q2 - 
-                 1478055600.*M_PI*q*Y + 407550150.*q2*Y2 + 56840112000.*log(2.) - 34595890560.*log(3.))) + 
-           352.*(5292000. - 5909400.*v2 + 390600.*v5*(586.*M_PI - 607.*q*Y) - 352800.*v3*(147.*M_PI + 20.*q*Y) - 
-              700.*v4*(-561058. + 63.*q2*(-871. + 417.*Y2)) + 
-              v6*(-4978731011. + 780877440.*EulerGamma - 255427200.*PI2 - 451102050.*q2 + 
-                 878824800.*M_PI*q*Y + 349602750.*q2*Y2 - 806762880.*log(2.) + 2358810720.*log(3.))) + 
-           44.*e4*v2*(753139800. + 6168355200.*PI2*v4 - 1173060000.*q*v*Y - 
-              6990064200.*q*v3*Y - 2100.*M_PI*v*(-173901. - 1284250.*v2 + 9302405.*q*v3*Y) + 
-              700.*v2*(-10536313. + 441.*q2*(-1051. + 2997.*Y2)) + 
-              v4*(130379142461. - 18857543040.*EulerGamma + 3150.*q2*(-329395. + 6978237.*Y2) - 
-                 10036430785920.*log(2.) + 3063210571260.*log(3.) + 2194335937500.*log(5.))) + 
-           9.*e6*v3*(2142201600.*PI2*v3 - 
-              1925.*M_PI*(8232. - 4005097.*v2 + 6080312.*q*v3*Y) - 
-              8.*v*(-1223433750. + 3697397550.*q*v*Y + 
-                 v2*(-37646484696. + 818627040.*EulerGamma - 17325.*q2*(-10713. + 287497.*Y2) - 
-                    8118485180960.*log(2.) + 2217650640975.*log(3.) + 2011474609375.*log(5.))))) - 
-        284739840.*v6*(15.*dv*(-256. - 1576.*e2 + 524.*e4 + 1239.*e6 + 69.*e6*e2) + 
-           de*e*(-2896. + 3928.*e2 + 8742.*e4 + 621.*e6)*v)*log(v)))/(1.397088e9*M*M);
-  return eq;
-}
-
-double dedt2(double v,double e,double Y,double m,double M,double q,double dv,double de){
-  double v2=v*v;
-  double v3=v2*v;
-  double v4=v2*v2;
-  double v5=v3*v2;
-  double v6=v3*v3;
-  double e2=e*e;
-  double e4=e2*e2;
-  double e6=e4*e2;
-  double Y2=Y*Y;
-  double q2=q*q;
-  double eq=(sqrt(1. - e2)*m*v6*v*(de*v*(-37820.*e2*
-           (-1986193440. + 6792841440.*v2 + 1164240.*v3*(2147.*M_PI + 11352.*q*Y) - 
-             10395.*v5*(4990003.*M_PI + 549256.*q*Y) - 
-             4620.*v4*(14053651. + 126.*q2*(1343. + 10871.*Y2)) - 
-             4.*v6*(-386065798597. + 50019298560.*EulerGamma - 16361452800.*PI2 - 18481041810.*q2 + 
-                24792781860.*M_PI*q*Y + 27555336270.*q2*Y2 + 766424736000.*log(2.) - 317201071572.*log(3.))) + 
-          30256.*(-884822400. + 2847814200.*v2 - 5821200.*v3*(985.*M_PI - 1758.*q*Y) + 
-             207900.*v5*(87947.*M_PI + 26642.*q*Y) - 
-             23100.*v4*(-286397. + 63.*q2*(-3179. + 5869.*Y2)) + 
-             v6*(-213268285609. + 36494156160.*EulerGamma - 11937340800.*PI2 - 18737507250.*q2 + 
-                68742550800.*M_PI*q*Y - 62264698650.*q2*Y2 + 34216237440.*log(2.) + 38920376880.*log(3.))) + 
-          e4*(63933820473600. - 353030869422000.*v2 - 32761575.*v5*(283241519.*M_PI - 52170384.*q*Y) + 
-             917324100.*v3*(1597987.*M_PI - 1295376.*q*Y) + 
-             87364200.*v4*(-57013007. + 63.*q2*(-198245. + 243603.*Y2)) + 
-             v6*(71262272151030342. - 14346096808538880.*EulerGamma + 4692648488774400.*PI2 + 
-                9349444151378100.*q2 - 16161393060697500.*M_PI*q*Y + 347458125514500.*q2*Y2 - 
-                2365747421798449920.*log(2.) + 488491197305860980.*log(3.) + 684866875000000000.*log(5.))) + 
-          8.*e6*v2*(629416427270400.*PI2*v4 - 
-             32761575.*M_PI*v*(-678076. - 5678971.*v2 + 48708940.*q*v3*Y) - 
-             2.*(-17753366446200. + 28906717039200.*q*v*Y + 348172458895800.*q*v3*Y - 
-                43682100.*v2*(-3506201. + 63.*q2*(-3191. + 9009.*Y2)) + 
-                v4*(-9716695786756521. + 962107967399040.*EulerGamma - 
-                   196569450.*q2*(395563. + 3248951.*Y2) - 212557598183441280.*log(2.) + 
-                   40193944047408690.*log(3.) + 68486687500000000.*log(5.))))) + 
-       7.*dv*e*(-1. + e2)*(7564.*e2*(1609977600. - 5524200000.*v2 + 
-             9147600.*v3*(5969.*M_PI - 5592.*q*Y) - 2799225.*v5*(122053.*M_PI + 25912.*q*Y) + 
-             118800.*v4*(-2070667. + 126.*q2*(-2975. + 4009.*Y2)) - 
-             8.*v6*(-918370399487. + 132024372480.*EulerGamma - 43185542400.*PI2 - 55785079350.*q2 + 
-                132978037500.*M_PI*q*Y - 37094037750.*q2*Y2 + 1322996209920.*log(2.) - 476774616780.*log(3.))) - 
-          60512.*(-505612800. + 2034153000.*v2 - 4573800.*v3*(985.*M_PI - 1758.*q*Y) + 
-             193050.*v5*(87947.*M_PI + 26642.*q*Y) - 
-             19800.*v4*(-286397. + 63.*q2*(-3179. + 5869.*Y2)) + 
-             v6*(-210661560169. + 36494156160.*EulerGamma - 11937340800.*PI2 - 18737507250.*q2 + 
-                68742550800.*M_PI*q*Y - 62264698650.*q2*Y2 + 34216237440.*log(2.) + 38920376880.*log(3.))) + 
-          e4*v2*(1258832854540800.*PI2*v4 - 
-             4680225.*M_PI*v*(-7458836. - 73826623.*v2 + 681925160.*q*v3*Y) - 
-             4.*(-12680976033000. + 22712420530800.*q*v*Y + 323302997546100.*q*v3*Y - 
-                37441800.*v2*(-3506201. + 63.*q2*(-3191. + 9009.*Y2)) + 
-                v4*(-9647973789085161. + 962107967399040.*EulerGamma - 
-                   196569450.*q2*(395563. + 3248951.*Y2) - 212557598183441280.*log(2.) + 
-                   40193944047408690.*log(3.) + 68486687500000000.*log(5.))))) - 
-       179481012480.*v6*(14.*dv*e*(-6152. - 16104.*e2 + 11535.*e4 + 10721.*e6) + 
-          de*(-6152. - 42160.*e2 + 79931.*e4 + 85768.*e6)*v)*log(v)))/(2.641893408e12*M*M);
-  return eq;
-}
 // ----------
 
 int sol_fun(const gsl_vector *x,void *p,gsl_vector *f){
@@ -328,21 +220,23 @@ int sol_fun(const gsl_vector *x,void *p,gsl_vector *f){
   double M=((struct sol_par*)p)->M;
   double e=((struct sol_par*)p)->e;
   double iota=((struct sol_par*)p)->iota;
+  double q=((struct sol_par*)p)->q;
 
   const double v_map=gsl_vector_get(x,0);
   const double M_map=gsl_vector_get(x,1);
   const double s_map=gsl_vector_get(x,2);
+  const double M_map_INSEC =M_map*SOLARMASSINSEC;
 
-  double Omega_r_map,Omega_theta_map,Omega_phi_map;
+  double Omega_r_map,Omega_theta_map,Omega_phi_map;  //QAAK MOD added
   if(cos(iota)>0){
-    Omega_r_map=drdm(v_map,e,cos(iota),s_map)/dtdm(v_map,e,cos(iota),s_map)/2./M_PI;
-    Omega_theta_map=dthetadm(v_map,e,cos(iota),s_map)/dtdm(v_map,e,cos(iota),s_map)/2./M_PI;
-    Omega_phi_map=dphidm(v_map,e,cos(iota),s_map)/dtdm(v_map,e,cos(iota),s_map)/2./M_PI;
+    Omega_r_map=drdm(v_map,e,cos(iota),s_map,q)/dtdm(v_map,e,cos(iota),s_map,q)/2./M_PI;
+    Omega_theta_map=dthetadm(v_map,e,cos(iota),s_map,q)/dtdm(v_map,e,cos(iota),s_map,q)/2./M_PI;
+    Omega_phi_map=dphidm(v_map,e,cos(iota),s_map,q)/dtdm(v_map,e,cos(iota),s_map,q)/2./M_PI;
   }
   else{
-    Omega_r_map=drdm(v_map,e,-cos(iota),-s_map)/dtdm(v_map,e,-cos(iota),-s_map)/2./M_PI;
-    Omega_theta_map=dthetadm(v_map,e,-cos(iota),-s_map)/dtdm(v_map,e,-cos(iota),-s_map)/2./M_PI;
-    Omega_phi_map=-dphidm(v_map,e,-cos(iota),-s_map)/dtdm(v_map,e,-cos(iota),-s_map)/2./M_PI;
+    Omega_r_map=drdm(v_map,e,-cos(iota),-s_map,q)/dtdm(v_map,e,-cos(iota),-s_map,q)/2./M_PI;
+    Omega_theta_map=dthetadm(v_map,e,-cos(iota),-s_map,q)/dtdm(v_map,e,-cos(iota),-s_map,q)/2./M_PI;
+    Omega_phi_map=-dphidm(v_map,e,-cos(iota),-s_map,q)/dtdm(v_map,e,-cos(iota),-s_map,q)/2./M_PI;
   }
 
   const double f0=Omega_r*M_map-Omega_r_map*M;
@@ -394,7 +288,7 @@ void print_state(size_t i, gsl_multiroot_fsolver *sol){
 
 }
 
-void ParMap(double map[],double Omega[],double p,double M,double s,double e,double iota){
+void ParMap(double map[],double Omega[],double p,double M,double s,double e,double iota,double q){
 
   const gsl_multiroot_fsolver_type *sol_typ;
   gsl_multiroot_fsolver *sol;
@@ -403,7 +297,7 @@ void ParMap(double map[],double Omega[],double p,double M,double s,double e,doub
   size_t i=0;
 
   const size_t n=3;
-  struct sol_par par={Omega[0],Omega[1],Omega[2],M,e,iota};
+  struct sol_par par={Omega[0],Omega[1],Omega[2],M,e,iota,q};
   gsl_multiroot_function f={&sol_fun,n,&par};
 
   double x0[n]={1./sqrt(p),M,s};

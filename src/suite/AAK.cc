@@ -12,11 +12,11 @@ using namespace std;
 
 
 // ----- magnitude of azimuthal angular frequency for prograde/retrograde orbits -----
-double OmegaPhi(double v, double e, double cosiota, double s, double M){
+double OmegaPhi(double v, double e, double cosiota, double s, double M, double q_q){
 
   double omegaphi;
-  if(cosiota>0) omegaphi=dphidm(v,e,cosiota,s)/dtdm(v,e,cosiota,s)/M;
-  else omegaphi=dphidm(v,e,-cosiota,-s)/dtdm(v,e,-cosiota,-s)/M;
+  if(cosiota>0) omegaphi=dphidm(v,e,cosiota,s,q_q)/dtdm(v,e,cosiota,s,q_q)/M;
+  else omegaphi=dphidm(v,e,-cosiota,-s,q_q)/dtdm(v,e,-cosiota,-s,q_q)/M;
 
   return omegaphi;
 
@@ -24,7 +24,7 @@ double OmegaPhi(double v, double e, double cosiota, double s, double M){
 // ----------
 
 
-void PNevolution(double *t, double *e, double *v, double *M, double *S, double *gim, double *Phi, double *alp, double *nu, double *gimdotvec, double timestep, int vlength, double *par, double e_traj[], double v_map[], double M_phys, double M_map[], double S_phys, double S_map[], double dt_map[], int steps, int *i_plunge, int *i_buffer, bool backint){
+void PNevolution(double *t, double *e, double *v, double *M, double *S, double *gim, double *Phi, double *alp, double *nu, double *gimdotvec, double timestep, int vlength, double *par, double e_traj[], double v_map[], double M_phys, double M_map[], double S_phys, double S_map[], double dt_map[], int steps, int *i_plunge, int *i_buffer, bool backint, double q_q){
 
   double mu=par[0];
   double M0=par[1];
@@ -65,8 +65,8 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
   for(int j=j0;j<j0+steps-1;j++){
     edotm=edot;
     vdotm=vdot;
-    edot=dedt(v_AK[j],e_AK[j],coslam,mu,M0,S0);
-    vdot=dvdt(v_AK[j],e_AK[j],coslam,mu,M0,S0);
+    edot=dedt(v_AK[j],e_AK[j],coslam,mu,M0,S0,q_q);
+    vdot=dvdt(v_AK[j],e_AK[j],coslam,mu,M0,S0,q_q);
     if(j==j0){
       edotm=edot;
       vdotm=vdot;
@@ -110,8 +110,8 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
   for(int j=j0+steps-1;j<j_end;j++){
     edotm=edot;
     vdotm=vdot;
-    edot=dedt(v_AK[j],e_AK[j],coslam,mu,M0,S0);
-    vdot=dvdt(v_AK[j],e_AK[j],coslam,mu,M0,S0);
+    edot=dedt(v_AK[j],e_AK[j],coslam,mu,M0,S0,q_q);
+    vdot=dvdt(v_AK[j],e_AK[j],coslam,mu,M0,S0,q_q);
     e_AK[j+1]=e_AK[j]+(1.5*edot-.5*edotm)*dt_large;
     v_AK[j+1]=v_AK[j]+(1.5*vdot-.5*vdotm)*dt_large;
     if(e_AK[j+1]<0. || v_AK[j+1]<v_AK[j] || isnan(e_AK[j+1]) || isnan(v_AK[j+1])){
@@ -154,21 +154,25 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
 
   for(int j=j0;j<=j_max_temp;j++){
     if(j>j_max) break;
-    if((1.-e_fit[j]*e_fit[j])*pow(OmegaPhi(v_fit[j],e_fit[j],coslam,S_fit[j],M_fit[j])*M_phys*SOLARMASSINSEC,-2./3.)<LSO_min && j_max==j_max_temp){
+    if((1.-e_fit[j]*e_fit[j])*pow(OmegaPhi(v_fit[j],e_fit[j],coslam,S_fit[j],M_fit[j],q_q)*M_phys*SOLARMASSINSEC,-2./3.)<LSO_min && j_max==j_max_temp){
       j_min=max(j-j_RR,j0);
       j_max=min(j+1,j_max_temp);
+      //printf("plunge max\n");
     }
-    if(j>j0 && (j-j0)%j_RR==0 && (1.-e_fit[j]*e_fit[j])*pow(OmegaPhi(v_fit[j],e_fit[j],coslam,S_fit[j],M_fit[j])*M_phys*SOLARMASSINSEC,-2./3.)<LSO_max && j_max==j_max_temp){
+    if(j>j0 && (j-j0)%j_RR==0 && (1.-e_fit[j]*e_fit[j])*pow(OmegaPhi(v_fit[j],e_fit[j],coslam,S_fit[j],M_fit[j],q_q)*M_phys*SOLARMASSINSEC,-2./3.)<LSO_max && j_max==j_max_temp){
       j_min=max(j-j_RR,j0);
-      IEKG iekg((1.-e_fit[j]*e_fit[j])*pow(OmegaPhi(v_fit[j],e_fit[j],coslam,S_fit[j],M_fit[j])*M_phys*SOLARMASSINSEC,-2./3.),e_fit[j],coslam,S_phys);
+      IEKG iekg((1.-e_fit[j]*e_fit[j])*pow(OmegaPhi(v_fit[j],e_fit[j],coslam,S_fit[j],M_fit[j],q_q)*M_phys*SOLARMASSINSEC,-2./3.),e_fit[j],coslam,S_phys);
       if(iekg.Stable==-1 || iekg.E>1) j_max=min(j+1,j_max_temp);
     }
   }
 
   while(j_max-j_min>1){
     int j_mid=(j_max+j_min)/2;
-    IEKG iekg((1.-e_fit[j_mid]*e_fit[j_mid])*pow(OmegaPhi(v_fit[j_mid],e_fit[j_mid],coslam,S_fit[j_mid],M_fit[j_mid])*M_phys*SOLARMASSINSEC,-2./3.),e_fit[j_mid],coslam,S_phys);
-    if(iekg.Stable==-1 || iekg.E>1) j_max=j_mid;
+    IEKG iekg((1.-e_fit[j_mid]*e_fit[j_mid])*pow(OmegaPhi(v_fit[j_mid],e_fit[j_mid],coslam,S_fit[j_mid],M_fit[j_mid],q_q)*M_phys*SOLARMASSINSEC,-2./3.),e_fit[j_mid],coslam,S_phys);
+    if(iekg.Stable==-1 || iekg.E>1) {
+      j_max=j_mid;    
+      //printf("plunge mid p, j0,j_mid,dt_large %14.12e %d %d %14.12e\n",(1.-e_fit[j_mid]*e_fit[j_mid])*pow(OmegaPhi(v_fit[j_mid],e_fit[j_mid],coslam,S_fit[j_mid],M_fit[j_mid],q_q)*M_phys*SOLARMASSINSEC,-2./3.), j0,j_mid,dt_large);
+    }
     else j_min=j_mid;
   }
   // ----------
@@ -183,8 +187,8 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
     for(int j=j0;j>j_start;j--){
       edotp=edot;
       vdotp=vdot;
-      edot=dedt(v_AK[j],e_AK[j],coslam,mu,M0,S0);
-      vdot=dvdt(v_AK[j],e_AK[j],coslam,mu,M0,S0);
+      edot=dedt(v_AK[j],e_AK[j],coslam,mu,M0,S0,q_q);
+      vdot=dvdt(v_AK[j],e_AK[j],coslam,mu,M0,S0,q_q);
       if(j==j0){
         edotp=edot;
         vdotp=vdot;
@@ -239,7 +243,7 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
   // ----- evolve phases from t_0 to t_end -----
   if(j_max==j_max_temp) *i_plunge=vlength-1;
   else *i_plunge=i0+(int)(t_fit[j_min]/timestep);
-  *i_buffer=(int)(10./(OmegaPhi(v[*i_plunge],e[*i_plunge],coslam,S[*i_plunge],M[*i_plunge])/2./M_PI)/timestep)+1; // 10 orbits after plunge
+  *i_buffer=(int)(10./(OmegaPhi(v[*i_plunge],e[*i_plunge],coslam,S[*i_plunge],M[*i_plunge],q_q)/2./M_PI)/timestep)+1; // 10 orbits after plunge
 
   gim[i0]=gim0;
   Phi[i0]=Phi0;
@@ -248,10 +252,9 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
     gimdotm=gimdot;
     Phidotm=Phidot;
     alpdotm=alpdot;
-    gimdot=(dthetadm(v[i],e[i],coslam,S[i])-drdm(v[i],e[i],coslam,S[i]))/dtdm(v[i],e[i],coslam,S[i])/M[i];
-    Phidot=drdm(v[i],e[i],coslam,S[i])/dtdm(v[i],e[i],coslam,S[i])/M[i];
-    alpdot=(dphidm(v[i],e[i],coslam,S[i])-dthetadm(v[i],e[i],coslam,S[i]))/dtdm(v[i],e[i],coslam,S[i])/M[i];
-    if(Phidot<=0.) Phidot=Phidotm;
+    gimdot=(dthetadm(v[i],e[i],coslam,S[i],q_q)-drdm(v[i],e[i],coslam,S[i],q_q))/dtdm(v[i],e[i],coslam,S[i],q_q)/M[i];
+    Phidot=drdm(v[i],e[i],coslam,S[i],q_q)/dtdm(v[i],e[i],coslam,S[i],q_q)/M[i];
+    alpdot=(dphidm(v[i],e[i],coslam,S[i],q_q)-dthetadm(v[i],e[i],coslam,S[i],q_q))/dtdm(v[i],e[i],coslam,S[i],q_q)/M[i];
     if(i==i0){
       gimdotm=gimdot;
       Phidotm=Phidot;
@@ -268,8 +271,8 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
       alp[i+1]=alp[*i_plunge];
     }
   }
-  nu[vlength]=drdm(v[vlength],e[vlength],coslam,S[vlength])/dtdm(v[vlength],e[vlength],coslam,S[vlength])/(2.*M_PI*M[vlength]);
-  gimdotvec[vlength]=(dthetadm(v[vlength],e[vlength],coslam,S[vlength])-drdm(v[vlength],e[vlength],coslam,S[vlength]))/dtdm(v[vlength],e[vlength],coslam,S[vlength])/M[vlength];
+  nu[vlength]=drdm(v[vlength],e[vlength],coslam,S[vlength],q_q)/dtdm(v[vlength],e[vlength],coslam,S[vlength],q_q)/(2.*M_PI*M[vlength]);
+  gimdotvec[vlength]=(dthetadm(v[vlength],e[vlength],coslam,S[vlength],q_q)-drdm(v[vlength],e[vlength],coslam,S[vlength],q_q))/dtdm(v[vlength],e[vlength],coslam,S[vlength],q_q)/M[vlength];
   // ----------
 
   // ----- evolve phases from t_0 to t_start -----
@@ -277,9 +280,9 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
     gimdotp=gimdot;
     Phidotp=Phidot;
     alpdotp=alpdot;
-    gimdot=(dthetadm(v[i],e[i],coslam,S[i])-drdm(v[i],e[i],coslam,S[i]))/dtdm(v[i],e[i],coslam,S[i])/M[i];
-    Phidot=drdm(v[i],e[i],coslam,S[i])/dtdm(v[i],e[i],coslam,S[i])/M[i];
-    alpdot=(dphidm(v[i],e[i],coslam,S[i])-dthetadm(v[i],e[i],coslam,S[i]))/dtdm(v[i],e[i],coslam,S[i])/M[i];
+    gimdot=(dthetadm(v[i],e[i],coslam,S[i],q_q)-drdm(v[i],e[i],coslam,S[i],q_q))/dtdm(v[i],e[i],coslam,S[i],q_q)/M[i];
+    Phidot=drdm(v[i],e[i],coslam,S[i],q_q)/dtdm(v[i],e[i],coslam,S[i],q_q)/M[i];
+    alpdot=(dphidm(v[i],e[i],coslam,S[i],q_q)-dthetadm(v[i],e[i],coslam,S[i],q_q))/dtdm(v[i],e[i],coslam,S[i],q_q)/M[i];
     if(i==i0){
       gimdotp=gimdot;
       Phidotp=Phidot;
@@ -291,8 +294,8 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
     Phi[i-1]=Phi[i]-(1.5*Phidot-.5*Phidotp)*timestep;
     alp[i-1]=alp[i]-(1.5*alpdot-.5*alpdotp)*timestep;
   }
-  nu[0]=drdm(v[0],e[0],coslam,S[0])/dtdm(v[0],e[0],coslam,S[0])/(2.*M_PI*M[0]);
-  gimdotvec[0]=(dthetadm(v[0],e[0],coslam,S[0])-drdm(v[0],e[0],coslam,S[0]))/dtdm(v[0],e[0],coslam,S[0])/M[0];
+  nu[0]=drdm(v[0],e[0],coslam,S[0],q_q)/dtdm(v[0],e[0],coslam,S[0],q_q)/(2.*M_PI*M[0]);
+  gimdotvec[0]=(dthetadm(v[0],e[0],coslam,S[0],q_q)-drdm(v[0],e[0],coslam,S[0],q_q))/dtdm(v[0],e[0],coslam,S[0],q_q)/M[0];
   // ----------
 
   free(e_AK);
@@ -318,7 +321,7 @@ void PNevolution(double *t, double *e, double *v, double *M, double *S, double *
 }
 
 
-void waveform(double *t, double *hI, double *hII, double timestep, int vlength, int nmodes, double zeta, double *par, double e_traj[], double v_map[], double M_phys, double M_map[], double S_phys, double S_map[], double dt_map[], int steps, bool backint, bool mich, bool traj){
+void waveform(double *t, double *hI, double *hII, double timestep, int vlength, int nmodes, double zeta, double *par, double e_traj[], double v_map[], double M_phys, double M_map[], double S_phys, double S_map[], double dt_map[], int steps, bool backint, bool mich, bool traj, double q_q){
 
   double mu=par[0];
   double lam=par[4];
@@ -350,7 +353,7 @@ void waveform(double *t, double *hI, double *hII, double timestep, int vlength, 
   gimdotvec=(double *)malloc((vlength+1)*sizeof(double));
 
   int i_plunge,i_buffer;
-  PNevolution(tvec,evec,vvec,Mvec,Svec,gimvec,Phivec,alpvec,nuvec,gimdotvec,timestep,vlength,par,e_traj,v_map,M_phys,M_map,S_phys,S_map,dt_map,steps,&i_plunge,&i_buffer,backint);
+  PNevolution(tvec,evec,vvec,Mvec,Svec,gimvec,Phivec,alpvec,nuvec,gimdotvec,timestep,vlength,par,e_traj,v_map,M_phys,M_map,S_phys,S_map,dt_map,steps,&i_plunge,&i_buffer,backint,q_q);
 
   // ----- output trajectory -----
   if(traj){
@@ -361,7 +364,7 @@ void waveform(double *t, double *hI, double *hII, double timestep, int vlength, 
       double M=Mvec[i];
       double S=Svec[i];
       t[i]=tvec[i];
-      hI[i]=(1.-e*e)*pow(OmegaPhi(v,e,coslam,S,M)*M_phys*SOLARMASSINSEC,-2./3.);
+      hI[i]=(1.-e*e)*pow(OmegaPhi(v,e,coslam,S,M,q_q)*M_phys*SOLARMASSINSEC,-2./3.);
       hII[i]=e;
 
 /*
@@ -478,7 +481,7 @@ void waveform(double *t, double *hI, double *hII, double timestep, int vlength, 
       FcrosII=c2psi_ldc;
     }
     
-    double Amp=pow(OmegaPhi(v,e,coslam,S,M)*M_phys*SOLARMASSINSEC,2./3.)*zeta;
+    double Amp=pow(OmegaPhi(v,e,coslam,S,M,q_q)*M_phys*SOLARMASSINSEC,2./3.)*zeta;
 
     for(int n=1;n<=nmodes;n++){
 
@@ -562,7 +565,7 @@ void waveform(double *t, double *hI, double *hII, double timestep, int vlength, 
 }
 
 
-void GenWave(double *t, double *hI, double *hII, double timestep, int vlength, double e_traj[], double v_map[], double M_phys, double M_map[], double mu, double S_phys, double S_map[], double dist, double inc, double gim0, double Phi0, double qS, double phiS, double alp0, double qK, double phiK, double dt_map[], int steps, bool backint, bool mich, bool traj){
+void GenWave(double *t, double *hI, double *hII, double timestep, int vlength, double e_traj[], double v_map[], double M_phys, double M_map[], double mu, double S_phys, double S_map[], double dist, double inc, double gim0, double Phi0, double qS, double phiS, double alp0, double qK, double phiK, double dt_map[], int steps, bool backint, bool mich, bool traj, double q_q){
 
   double par[12];
   par[0]=mu*SOLARMASSINSEC;
@@ -585,7 +588,7 @@ void GenWave(double *t, double *hI, double *hII, double timestep, int vlength, d
 
   double zeta=par[0]/dist/Gpc; // M/D
 
-  waveform(t,hI,hII,timestep,vlength,nmodes,zeta,par,e_traj,v_map,M_phys,M_map,S_phys,S_map,dt_map,steps,backint,mich,traj);
+  waveform(t,hI,hII,timestep,vlength,nmodes,zeta,par,e_traj,v_map,M_phys,M_map,S_phys,S_map,dt_map,steps,backint,mich,traj,q_q);
   return;
 
 }

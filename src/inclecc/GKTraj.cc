@@ -701,7 +701,9 @@ void GKTraj::Param_derivs(Real t, Real *x, Real *dxdt)
     delete circular;
   }
   //
-  GKR gkr(ppp, eee, Ehere, Lzhere, Qhere, a);
+//QAAK MOD: This part is not used for QAAK, so quadrupole is fixed to Kerr value.
+  fprintf(stderr, "QAAK MOD WARNING: GKR part is modified for QAAK!");
+  GKR gkr(ppp, eee, Ehere, Lzhere, Qhere, a, -a*a);  
   //
   dxdt[1] = gkr.pdot;
   //

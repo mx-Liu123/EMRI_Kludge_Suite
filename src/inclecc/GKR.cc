@@ -17,6 +17,8 @@
 // been removed.
 //
 
+//---------- QAAK MOD: We  choose  a  rough  approach  by  replacing  all the fluxes terms quadratic in spin with −Q in the higher order equations. ------------
+
 #include <math.h>
 #include "Globals.h"
 #include "GKR.h"
@@ -26,8 +28,8 @@
 #include "LB.h"
 
 GKR::GKR(const Real semilatus, const Real ecc, const Real energy,
-	 const Real angmom, const Real carter, const Real spin) :
-  p(semilatus), e(ecc), E(energy), Lz(angmom), Q(carter), kerr_a(spin)
+	 const Real angmom, const Real carter, const Real spin, const Real DeltaQ_q) :
+  p(semilatus), e(ecc), E(energy), Lz(angmom), Q(carter), kerr_a(spin), q_q(DeltaQ_q)
 {
   ome = 1. - e;
   ope = 1. + e;
@@ -244,16 +246,16 @@ Real GKR::Qdot_GG()
     +(82.07804475-25.82025864*sqrt(p)+kerr_a*(-904.16109275+301.477789146*sqrt(p)+kerr_a*(827.31891826-271.9659423*sqrt(p))))*
 	      csqi)/(p*sqrt(p));
 
-  idtcorrection=kerr_a*kerr_a*(247.1682656/sqrt(p)-162.2684644+csqi*(-267.5529723/sqrt(p)+184.4645976)
+  idtcorrection=(-q_q)*(247.1682656/sqrt(p)-162.2684644+csqi*(-267.5529723/sqrt(p)+184.4645976)
 			       +kerr_a*(-182.165263315/sqrt(p)+152.125216225+csqi*(254.0668915/sqrt(p)-188.131613584)))/(p*p);
 
-  higherorderfit=(c3a+(c3b+c3c/sqrt(p))/sqrt(p)+kerr_a*kerr_a*((c4a+(c4b+c4c/sqrt(p))/sqrt(p))+kerr_a*kerr_a*(c5a+(c5b+c5c/sqrt(p))/sqrt(p))))+cosiota*kerr_a*(c6a+(c6b+c6c/sqrt(p))/sqrt(p)+kerr_a*kerr_a*(c7a+(c7b+c7c/sqrt(p))/sqrt(p)))+csqi*kerr_a*kerr_a*((c8a+(c8b+c8c/sqrt(p))/sqrt(p))+kerr_a*kerr_a*(c9a+(c9b+c9c/sqrt(p))/sqrt(p)))+csqi*cosiota*kerr_a*kerr_a*kerr_a*((c10a+(c10b+c10c/sqrt(p))/sqrt(p))+cosiota*kerr_a*(c11a+(c11b+c11c/sqrt(p))/sqrt(p)))+correction;
+  higherorderfit=(c3a+(c3b+c3c/sqrt(p))/sqrt(p)+(-q_q)*((c4a+(c4b+c4c/sqrt(p))/sqrt(p))+(-q_q)*(c5a+(c5b+c5c/sqrt(p))/sqrt(p))))+cosiota*kerr_a*(c6a+(c6b+c6c/sqrt(p))/sqrt(p)+(-q_q)*(c7a+(c7b+c7c/sqrt(p))/sqrt(p)))+csqi*(-q_q)*((c8a+(c8b+c8c/sqrt(p))/sqrt(p))+(-q_q)*(c9a+(c9b+c9c/sqrt(p))/sqrt(p)))+csqi*cosiota*kerr_a*kerr_a*kerr_a*((c10a+(c10b+c10c/sqrt(p))/sqrt(p))+cosiota*kerr_a*(c11a+(c11b+c11c/sqrt(p))/sqrt(p)))+correction;
 
   circpiece=1. - kerr_a/(pow(p, 1.5))*( cosiota*61./8.) -  
     1247./(336.*p) + 4.*M_PI/pow(p,1.5)-44711./(9072.*p*p)+
-    kerr_a*kerr_a*(-57./16.+45.*csqi/8.)/(p*p)+higherorderfit/(p*p*sqrt(p));
+    (-q_q)*(-57./16.+45.*csqi/8.)/(p*p)+higherorderfit/(p*p*sqrt(p));
 
-  circpiece-=kerr_a*kerr_a*(ic3a+ic3b/p+ic3c/(p*sqrt(p))+kerr_a*cosiota*(ic4a/(sqrt(p))+ic4b/p+ic4c/(p*sqrt(p)))
+  circpiece-=(-q_q)*(ic3a+ic3b/p+ic3c/(p*sqrt(p))+kerr_a*cosiota*(ic4a/(sqrt(p))+ic4b/p+ic4c/(p*sqrt(p)))
 			    +idtcorrection)/(p*p);
 
   Qdotcirc=-12.8*Lovercosicirc*siniotasqr*circpiece/pow(p,3.5);
@@ -262,8 +264,7 @@ Real GKR::Qdot_GG()
   dQdt=-12.8*Lovercosi*siniotasqr*(1.-e*e)*sqrt(1.-e*e)*
     (circpiece+7.*e*e/8.-(e*e*425./336.)/p+M_PI*(97.*e*e/8.)/(p*sqrt(p))
      -(302893.*e*e/6048.)/(p*p)-kerr_a*cosiota*e*e*(91./4.+461.*e*e/64.)/(p*sqrt(p))
-     +kerr_a*kerr_a*(95.*e*e/16.)/(p*p)+Lzesqcorr)/pow(p,3.5);
-
+     +(-q_q)*(95.*e*e/16.)/(p*p)+Lzesqcorr)/pow(p,3.5);
   return (dQdt);
 }
 
@@ -284,13 +285,13 @@ Real GKR::Edot_GG()
 
   fact=pow(ome2,1.5);
 
-  dEdLz=(2.*((p*p-2.*p)*Lzcirc+2.*kerr_a*p*Ecirc))/(4.*kerr_a*p*(Lzcirc-kerr_a*Ecirc)-2.*p*p*Ecirc*(p*p+kerr_a*kerr_a));
-  dEdQ=(-2.*p+p*p+kerr_a*kerr_a)/(4.*kerr_a*p*(Lzcirc-kerr_a*Ecirc)-2.*p*p*Ecirc*(p*p+kerr_a*kerr_a));
+  dEdLz=(2.*((p*p-2.*p)*Lzcirc+2.*kerr_a*p*Ecirc))/(4.*kerr_a*p*(Lzcirc-kerr_a*Ecirc)-2.*p*p*Ecirc*(p*p+(-q_q)));
+  dEdQ=(-2.*p+p*p+(-q_q))/(4.*kerr_a*p*(Lzcirc-kerr_a*Ecirc)-2.*p*p*Ecirc*(p*p+(-q_q)));
 
   const Real circbit=-(dEdLz*Ldotcirc+dEdQ*Qdotcirc);
 
   return(pref*(term1 - kerr_a*cosiota*term2/(pow(p, 1.5))-term3/p+M_PI*term4/pow(p,1.5)
-	       -term5/(p*p)+kerr_a*kerr_a*term6/(p*p)+esqcorr)+fact*circbit);
+	       -term5/(p*p)+(-q_q)*term6/(p*p)+esqcorr)+fact*circbit);
 }
 
 Real GKR::Lzdot_GG()
@@ -354,17 +355,17 @@ Real GKR::Lzdot_GG()
 	      +(82.07804475-25.82025864*sqrt(p)+kerr_a*(-904.16109275+301.477789146*sqrt(p)+kerr_a*(827.31891826-271.9659423*sqrt(p))))*
 	      cosiota*csqi)/(p*sqrt(p));
 
-  higherorderfit=kerr_a*(c1+kerr_a*kerr_a*c2)+cosiota*(c3a+(c3b+c3c/sqrt(p))/sqrt(p)+kerr_a*kerr_a*((c4a+(c4b+c4c/sqrt(p))/sqrt(p))+kerr_a*kerr_a*(c5a+(c5b+c5c/sqrt(p))/sqrt(p))))+csqi*kerr_a*(c6a+(c6b+c6c/sqrt(p))/sqrt(p)+kerr_a*kerr_a*(c7a+(c7b+c7c/sqrt(p))/sqrt(p)))+cosiota*csqi*kerr_a*kerr_a*((c8a+(c8b+c8c/sqrt(p))/sqrt(p))+kerr_a*kerr_a*(c9a+(c9b+c9c/sqrt(p))/sqrt(p)))+csqi*csqi*kerr_a*kerr_a*kerr_a*((c10a+(c10b+c10c/sqrt(p))/sqrt(p))+cosiota*kerr_a*(c11a+(c11b+c11c/sqrt(p))/sqrt(p)))+correction;
+  higherorderfit=kerr_a*(c1+kerr_a*kerr_a*c2)+cosiota*(c3a+(c3b+c3c/sqrt(p))/sqrt(p)+(-q_q)*((c4a+(c4b+c4c/sqrt(p))/sqrt(p))+(-q_q)*(c5a+(c5b+c5c/sqrt(p))/sqrt(p))))+csqi*kerr_a*(c6a+(c6b+c6c/sqrt(p))/sqrt(p)+(-q_q)*(c7a+(c7b+c7c/sqrt(p))/sqrt(p)))+cosiota*csqi*(-q_q)*((c8a+(c8b+c8c/sqrt(p))/sqrt(p))+(-q_q)*(c9a+(c9b+c9c/sqrt(p))/sqrt(p)))+csqi*csqi*kerr_a*kerr_a*kerr_a*((c10a+(c10b+c10c/sqrt(p))/sqrt(p))+cosiota*kerr_a*(c11a+(c11b+c11c/sqrt(p))/sqrt(p)))+correction;
 
   const Real circbit=cosiota + kerr_a/(pow(p, 1.5))*(61./24. - csqi*61./8.) -  
     cosiota*1247./(336.*p) + 4.*M_PI*cosiota/pow(p,1.5)-44711.*cosiota/(9072.*p*p)+
-    kerr_a*kerr_a*cosiota*(-57./16.+45.*csqi/8.)/(p*p)+higherorderfit/(p*p*sqrt(p));
+    (-q_q)*cosiota*(-57./16.+45.*csqi/8.)/(p*p)+higherorderfit/(p*p*sqrt(p));
 
   Ldotcirc=-6.4*circbit/pow(p,3.5);
 
   return(pref*(cosiota*term1 + kerr_a/(pow(p, 1.5))*(term2 - csqi*term3) -  
 	       cosiota*term4/p +M_PI*term5*cosiota/pow(p,1.5)-term6*cosiota/(p*p)+
-	       kerr_a*kerr_a*term7*cosiota/(p*p) +esqcorr + circbit ));
+	       (-q_q)*term7*cosiota/(p*p) +esqcorr + circbit ));
 }
 
 //

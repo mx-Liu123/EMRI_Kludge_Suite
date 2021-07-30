@@ -1,16 +1,12 @@
-# EMRI Kludge Suite (DISCONTINUED)
+# Augmented Analytic Kludge Waveform With Quadrupole Moment Correction
 
-**Version 0.5.2**
+This is a C/C++ code that computes quadrapole included augmented analytic kludge (QAAK) [1] waveforms for extreme-mass-ratio inspirals (EMRIs), where the system could possess arbitrary quadrapole moment deviation from Kerr value. The code is modified from EMRI Kludge Suite (version 0.5.0) [2,3,4] https://github.com/alvincjk/EMRI_kludge_Suite. And the orbital frequency deviations caused by arbitrary quadrupole is evaluated by the method in [5].
 
-This is a C/C++ suite that allows kludge waveforms for extreme-mass-ratio inspirals (EMRIs) to be generated with shared settings and parameters. The three waveforms included in the suite are the augmented analytic kludge (AAK) [1,2], the analytic kludge (AK) [3], and the numerical kludge (NK) [4]. EMRI Kludge Suite is part of the Black Hole Perturbation Toolkit; visit http://bhptoolkit.org for more information.
-
-EMRI Kludge Suite is no longer being maintained. Active development has shifted to the next-generation framework at https://bhptoolkit.org/FastEMRIWaveforms, which includes an improved 5PN version of the AAK waveform.
-
-&mdash; Alvin Chua, Jan 2021
+&mdash; Miaoxin Liu, July 2021
 
 ## Installation
 
-The GSL and FFTW libraries are required for compilation. Clean up any previous installation first with `make clean`. Running `make` will create the following executables in the folder `./bin`:
+The Installation is same to EMRI Kludge Suite: The GSL and FFTW libraries are required for compilation. Clean up any previous installation first with `make clean`. Running `make` will create the following executables in the folder `./bin`:
 
 - `AAK_Waveform`
 - `AK_Waveform`
@@ -19,79 +15,74 @@ The GSL and FFTW libraries are required for compilation. Clean up any previous i
 - `AK_TDI`
 - `AAK_Phase`
 
-Python support is available for all AAK outputs, as well as the AK TDIs. GPU functionality with Python interface has also been added for the AAK (waveform only). These modules are installed by running `python setup.py install`; if root access is not available, try `python setup.py install --user` instead.
+Note that the current version has removed the usage of AAK TDIs, AAK phases, Python interface of EMRI Kludge Suite.
 
 ## Usage
 
-### Waveforms
+The file `./examples/SetPar_Waveform` is a template for a formatted settings/parameters file that contains the output file path, various toggles, and the EMRI parameters. More details are provided in the template file itself. In QAAK Mod, the quadrupole deviation from Kerr value q_q is included as an additional parameter.
 
-The file `./examples/SetPar_Waveform` is a template for a formatted settings/parameters file that contains the output file path, various toggles, and the EMRI parameters. More details are provided in the template file itself.
-
-As an example, running `bin/AAK_Waveform examples/SetPar_Waveform` will generate an AAK waveform with default settings and parameters. Three files will be created in `./bin`:
+For example, running `bin/AAK_Waveform examples/SetPar_Waveform` will generate a QAAK waveform with default settings and parameters. Three files will be created in `./bin`:
 
 - `example_wave.dat` contains waveform data (t, h_I, h_II)
-- `example_traj.dat` contains inspiral trajectory data (t, p/M, e, iota, E, L_z, Q)
+- `example_traj.dat` contains inspiral trajectory data (t, p/M, e, iota, E, L_z, Carter Constant: K), where quadrupole correction do not affect the output (p,e,iota)->(E,Lz,K) since K is not well defined in a spacetime with arbitrary quadrupole moment. 
 - `example_info.txt` contains additional information such as signal-to-noise ratio and waveform timing
 
-### AAK/AK TDIs
+## QAAK Mod files
+Main:
+- `src/exec/AAK_Waveform.cc`  Calculate the orbital frequency deviations from Kerr value, which correct the AAK mapping.
+- `src/inclecc/GKR.cc`  Quadrupole corrections in NK.
+- `src/suite/KSParMap.cc`  Quadrupole corrections in 3pn AK; The quadrupole won't be mapped to an unphysical value like spin in AAK mapping.
+- `src/suite/AAK.cc`  Quadrupole is included when calling the 3pn AK functions in KSParMap.cc.
+- `src/suite/GKTrajFast.cc`  Quadrupole is included when calling the GKR.
+- `src/suite/KSTools.cc`  The quadrupole deviation from Kerr value q_q is added as an additional input parameter.  
 
-The file `./examples/SetPar_TDI` contains default settings and parameters for the TDI executables. These output the fixed-and-equal-arm LISA TDI channels (X,Y,Z), which are computed directly in the Fourier domain using the stationary phase approximation.
+These header files are also modified:
+- `include/AAK.h` 
+- `include/GKR.h` 
+- `include/GKTrajFast.h` 
+- `include/KSParMap.h` 
+- `include/KSTools.h` 
 
-For example, running `bin/AAK_TDI examples/SetPar_TDI` will create two files in `./bin`:
-
-- `example_wave.dat` contains TDI data (f, Xf_r, Xf_im, Yf_r, Yf_im, Zf_r, Zf_im)
-- `example_info.txt` contains timing information
-
-### AAK phases
-
-The file `./examples/SetPar_Phase` contains default settings and parameters for the executable `./bin/AAK_Phase`, which computes the evolution of the radial, polar and azimuthal phases in the AAK (without amplitude information). These phases are fast to generate and can be downsampled significantly; their time derivatives are the Kerr fundamental frequencies (see [2] for their explicit relation to the AK frequencies).
-
-Running `bin/AAK_Phase examples/SetPar_Phase` will create two files in `./bin`:
-
-- `example_wave.dat` contains phase data (t, phase_r, phase_theta, phase_phi, omega_r, omega_theta, omega_phi, e)
-- `example_info.txt` contains timing information
-
-### Python wrapper
-
-Example Python usage is provided in the file `./examples/AAKdemo.py`. There are four available functions in the module `AAKwrapper`:
-
-- `wave` corresponds to the output of `./bin/AAK_Waveform`
-- `tdi` corresponds to the output of `./bin/AAK_TDI`
-- `phase` corresponds to the output of `./bin/AAK_Phase`
-- `aktdi` corresponds to the output of `./bin/AK_TDI`
-
-### GPU implementation
-
-The AAK waveform has been ported to CUDA. Python interface and native GPU computation of the LISA noise-weighted inner product are also available. Example usage is provided in the file `./examples/pygpuAAKdemo.py`.
+The following files have nothing to do with QAAK waveform, modified to avoid errors:
+- `src/exec/AAK_Phase.cc` 
+- `src/exec/AAK_TDI.cc` 
+- `src/inclecc/GKTrajcc.cc` 
+- `src/suite/AAKPhase.cc` 
+- `src/suite/AAKpy.cc` 
+- `src/suite/AAKTDI.cc` 
 
 ## List of (important) known bugs
 
+Known bugs of AAK:
 - The approximate LISA response functions h_I/h_II for the AAK/AK and the NK do not match up, likely due to differing conventions when implementing the Doppler shift
 - The NK may produce NaNs at times that coincide with specific fractions of the LISA orbital period (when using integer values of dt), or near plunge; this needs to be fixed, but in the meantime a band-aid solution for dealing with isolated NaNs is included
 - All waveforms may have difficulties with zero or epsilon values for certain parameters such as spin, eccentricity and inclination
 
+Bugs of QAAK:
+- Orbital frequency deviations may be NaNs when p is too small, but it is safe for the position where they are needed to correct the mappings.
+
 ## Authors
 
-**Alvin Chua**  
-Jet Propulsion Laboratory  
-`alvin.j.chua@jpl.nasa.gov`
+**Miaoxin Liu**  
+School of Physics and Astronomy, Sun Yat-sen University  
+`liumx37@mail2.sysu.edu.cn`
 
-**Jonathan Gair**  
-Max Planck Institute for Gravitational Physics 
-`jonathan.gair@aei.mpg.de`
+**Jian-dong Zhang**  
+TianQin Research Center for Gravitational Physics  
+`zhangjd9@mail.sysu.edu.cn`
 
-**Michael Katz**
-Northwestern University
-`michaelkatz2016@u.northwestern.edu`
+## Acknowledgments
 
-The EMRI Kludge Suite is also based on code written by Leor Barack (for the AK) and Scott Hughes (for the NK). The TDI executables are based on an approximate derivation/implementation by Stanislav Babak. The Python wrapper for the AAK is provided by Michele Vallisneri.
+We thank Alvin J. K. Chua and Yiming Hu for helpful discussion. This code makes use of the Black Hole Perturbation Toolkit.
 
 ## References
 
-[1] A. J. K. Chua & J. R. Gair. Improved analytic extreme-mass-ratio inspiral model for scoping out eLISA data analysis. *Class. Quantum Grav.* 32:232002, 2015.
+[1] M. Liu & J. Zhang. Augmented analytic kludge waveform with quadrupole moment correction. e-Print: 2008.11396.
 
-[2] A. J. K. Chua, C. J. Moore & J. R. Gair. Augmented kludge waveforms for detecting extreme-mass-ratio inspirals. *Physical Review D* 96:044005, 2017.
+[2] A. J. K. Chua & J. R. Gair. Improved analytic extreme-mass-ratio inspiral model for scoping out eLISA data analysis. *Class. Quantum Grav.* 32:232002, 2015.
 
-[3] L. Barack & C. Cutler. LISA capture sources: Approximate waveforms, signal-to-noise ratios, and parameter estimation accuracy. *Physical Review D* 69:082005, 2004.
+[3] A. J. K. Chua, C. J. Moore & J. R. Gair. Augmented kludge waveforms for detecting extreme-mass-ratio inspirals. *Physical Review D* 96:044005, 2017.
 
 [4] S. Babak, H. Fang, J. R. Gair, K. Glampedakis & S. A. Hughes. "Kludge" gravitational waveforms for a test-body orbiting a Kerr black hole. *Physical Review D* 75:024005, 2007.
+
+[5] S. J. Vigeland & S. A. Hughes. Spacetime and orbits of bumpy black holes. *Physical Review D* 81:024030, 2010.

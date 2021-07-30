@@ -18,7 +18,7 @@
 //
 class GKTrajFast {
 public:
-  GKTrajFast(const Real cosiotastart, const Real spin);
+  GKTrajFast(const Real cosiotastart, const Real spin, const Real DeltaQ_q);
 
   int Eccentric(const Real dtstart, TrajData traj[],
 		int StepsMax, int & StepsTaken);
@@ -29,7 +29,7 @@ public:
 
   Real p, ecc, cosiota, t;
 
-  Real a, dt, dt_orig;
+  Real a, dt, dt_orig, q_q;
 
   Real **p_lso, *e_lso, *csi_lso;
 

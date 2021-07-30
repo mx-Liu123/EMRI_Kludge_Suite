@@ -10,7 +10,7 @@
 class GKR {
 public:
   GKR(const Real semilatus, const Real ecc, const Real energy,
-      const Real angmom, const Real carter, const Real spin);
+      const Real angmom, const Real carter, const Real spin, const Real DeltaQ_q);
   Real p_LSO(Real csi);
 
   Real Edot, Lzdot, Qdot;
@@ -29,7 +29,7 @@ private:
 
   RRGW *rrgw;
 
-  Real p, e, E, Lz, Q, kerr_a, Ecirc, Lzcirc, Qcirc, Lovercosicirc;
+  Real p, e, E, Lz, Q, kerr_a, Ecirc, Lzcirc, Qcirc, Lovercosicirc, q_q;
   Real cosiota, siniotasqr, sini,ra, rp, Lovercosi, a_sm, ome, ope, ome2;  
 };
 #endif

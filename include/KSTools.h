@@ -50,6 +50,9 @@ struct SetPar {
   double alpha; // initial azimuthal orientation
   double D; // source distance in Gpc
 
+  double q_q; //QAAK MOD ADDED
+
+
 };
 
 int CheckFile(const char *filename);

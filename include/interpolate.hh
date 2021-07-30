@@ -31,18 +31,14 @@ public:
     Interpolate();
 
     __host__ void alloc_arrays(int max_length_init, int num_arr);
-    __host__ void setup(InterpArrayContainer *array_container, double *d_tvec, int m_, int n_);
+    __host__ void setup(InterpArrayContainer *array_container, int m_, int n_);
 
     __host__ ~Interpolate(); //destructor
 };
 
 void destroyInterpArrayContainer(InterpArrayContainer *array_container, int num_arr);
 
-InterpArrayContainer * createInterpArrayContainer(size_t *numBytes, int num_arr, int num_points);
-
-InterpArrayContainer * createInterpArrayContainer_gpu(size_t numBytes, InterpArrayContainer *cpu_array_container);
-
-void destroyInterpArrayContainer(InterpArrayContainer * gpu_array_container, InterpArrayContainer *cpu_array_container, int num_arr);
+InterpArrayContainer * createInterpArrayContainer(int num_arr, int num_points);
 
 __global__
 void set_spline_constants(InterpArrayContainer *arr_container, double *B, int length_per_arr, int num_arr);

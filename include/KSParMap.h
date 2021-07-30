@@ -25,6 +25,7 @@ struct sol_par{
   double M;
   double e;
   double iota;
+  double q;
 
 };
 
@@ -33,12 +34,12 @@ void cross(const gsl_vector *u,const gsl_vector *v,gsl_vector *w);
 void ParAng(double ang[],double e,double iota,double gamma,double psi,double theta_S,double phi_S,double theta_K,double phi_K,double alpha,double zm);
 
 // ----- 3PN O(e^6) equations (Sago & Fujita, 2015) -----
-double dvdt(double v,double e,double Y,double m,double M,double q);
-double dedt(double v,double e,double Y,double m,double M,double q);
-double dtdm(double v,double e,double Y,double q);
-double drdm(double v,double e,double Y,double q);
-double dthetadm(double v,double e,double Y,double q);
-double dphidm(double v,double e,double Y,double q);
+double dvdt(double v,double e,double Y,double m,double M,double q,double q_q);
+double dedt(double v,double e,double Y,double m,double M,double q,double q_q);
+double dtdm(double v,double e,double Y,double q,double q_q);
+double drdm(double v,double e,double Y,double q,double q_q);
+double dthetadm(double v,double e,double Y,double q,double q_q);
+double dphidm(double v,double e,double Y,double q,double q_q);
 double dvdt2(double v,double e,double Y,double m,double M,double q,double dv,double de);
 double dedt2(double v,double e,double Y,double m,double M,double q,double dv,double de);
 // ----------
@@ -49,7 +50,7 @@ int sol_inv(const gsl_vector *x,void *p,gsl_vector *f);
 
 void print_state(size_t i, gsl_multiroot_fsolver *sol);
 
-void ParMap(double map[],double Omega[],double p,double M,double s,double e,double iota);
+void ParMap(double map[],double Omega[],double p,double M,double s,double e,double iota,double q);
 
 void ParInvMap(double map[],double Omega[],double p,double M,double s,double e,double iota);
 

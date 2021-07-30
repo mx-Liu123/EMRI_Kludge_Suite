@@ -357,7 +357,7 @@ Inspiral::Inspiral(const Real *params, double deltat, const int Nfrst, const int
     if ( nMax > Nmx )
       nMax = Nmx;
    
-    for ( n = 0; n < Nmx; n++ ) {
+    for ( n = 0; n < Nmx; n++ ) {         
       t = gkinsp.tecc_init + n*dt;
       r = gkinsp.rfunc( t, gkinsp.x[1] );
       ct = gkinsp.costhetafunc( t, gkinsp.x[2] );
@@ -431,7 +431,7 @@ Inspiral::Inspiral(const Real *params, double deltat, const int Nfrst, const int
 	cerr << "Inspiral ending eccentric at t = " << t << " as LSO is approached." << endl;
 	Nmx=n;
       }
-    }
+    }                  
     if (writeout)
     	fclose(outfile);
 

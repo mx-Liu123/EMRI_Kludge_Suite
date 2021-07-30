@@ -8,7 +8,8 @@ cdef extern from "AAK_manager.hh":
         GPUAAKwrap(double, int, int,
         double, double,
         bool,
-        bool)
+        bool,
+        np.complex128_t*, np.complex128_t*, np.float64_t*, np.float64_t*)
 
         void run_phase_trajectory(
             double,
@@ -25,8 +26,6 @@ cdef extern from "AAK_manager.hh":
             double,
             double,
             double);
-
-        void input_data(np.complex128_t *hI_f_, np.complex128_t *hII_f_, np.float64_t *channel_ASDinv1_, np.float64_t *channel_ASDinv2_, int len)
 
         void gpu_gen_AAK(double,
                             double,
@@ -51,18 +50,13 @@ cdef class GPUAAK:
     cdef int length
     cdef GPUAAKwrap* g
 
-    def __cinit__(self, T_fit, init_length, length, init_dt, dt, LISA, backint):
+    def __cinit__(self, T_fit, init_length, length, init_dt, dt, LISA, backint,
+                  np.ndarray[ndim=1, dtype=np.complex128_t] data_channel1,
+                  np.ndarray[ndim=1, dtype=np.complex128_t] data_channel2,
+                  np.ndarray[ndim=1, dtype=np.float64_t] noise_channel1_inv,
+                  np.ndarray[ndim=1, dtype=np.float64_t] noise_channel2_inv):
         self.length = length
-        self.g = new GPUAAKwrap(T_fit, init_length, length, init_dt, dt, LISA, backint)
-
-    def input_data(self,
-                   np.ndarray[ndim=1, dtype=np.complex128_t] hI_f_,
-                   np.ndarray[ndim=1, dtype=np.complex128_t] hII_f_,
-                   np.ndarray[ndim=1, dtype=np.float64_t] channel_ASDinv1_,
-                   np.ndarray[ndim=1, dtype=np.float64_t] channel_ASDinv2_):
-
-        length_in = len(hI_f_)
-        self.g.input_data(&hI_f_[0], &hII_f_[0], &channel_ASDinv1_[0], &channel_ASDinv2_[0], length_in)
+        self.g = new GPUAAKwrap(T_fit, init_length, length, init_dt, dt, LISA, backint, &data_channel1[0], &data_channel2[0], &noise_channel1_inv[0], &noise_channel2_inv[0])
 
     def gpu_gen_AAK(self, iota, s, p, e, M, mu, gamma, psi, alph, theta_S,
                         phi_S, theta_K, phi_K, D):
@@ -70,7 +64,7 @@ cdef class GPUAAK:
         self.g.gpu_gen_AAK(iota, s, p, e, M, mu, gamma, psi, alph, theta_S,
                             phi_S, theta_K, phi_K, D)
 
-    def GetWaveform(self, is_Fourier=False):
+    def GetWaveform(self):
         cdef np.ndarray[ndim=1, dtype=np.float64_t] t_ = np.zeros(self.length+2, dtype=np.float64)
         cdef np.ndarray[ndim=1, dtype=np.float64_t] hI_ = np.zeros(self.length+2, dtype=np.float64)
         cdef np.ndarray[ndim=1, dtype=np.float64_t] hII_ = np.zeros(self.length+2, dtype=np.float64)
@@ -85,9 +79,7 @@ cdef class GPUAAK:
         return like_
 
     def WaveformThroughLikelihood(self, iota, s, p, e, M, mu, gamma, psi, alph, theta_S,
-                        phi_S, theta_K, phi_K, D, return_waveform=False):
+                        phi_S, theta_K, phi_K, D):
         self.gpu_gen_AAK(iota, s, p, e, M, mu, gamma, psi, alph, theta_S,
                             phi_S, theta_K, phi_K, D)
-        if return_waveform == True:
-            return (0.0, 0.0)
         return self.Likelihood()

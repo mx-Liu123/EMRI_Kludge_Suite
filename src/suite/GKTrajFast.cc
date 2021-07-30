@@ -17,8 +17,8 @@
 #define REDMIN 0.7
 #define SCALMX 0.1
 
-GKTrajFast::GKTrajFast(const Real cosiotastart, const Real spin)
-  : cosiota(cosiotastart), a(spin)
+GKTrajFast::GKTrajFast(const Real cosiotastart, const Real spin, const Real DeltaQ_q)
+  : cosiota(cosiotastart), a(spin), q_q(DeltaQ_q)
 {
   //
   // The main thing the constructor does is store the coordinates of
@@ -700,7 +700,8 @@ void GKTrajFast::Param_derivs(Real t, Real *x, Real *dxdt)
     delete circular;
   }
   //
-  GKR gkr(ppp, eee, Ehere, Lzhere, Qhere, a);
+//QAAK MOD: Where quadrupole is included.
+  GKR gkr(ppp, eee, Ehere, Lzhere, Qhere, a, q_q);
   //
   dxdt[1] = gkr.pdot;
   //
